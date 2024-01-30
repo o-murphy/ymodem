@@ -1,13 +1,14 @@
-import os
 import logging
 import math
 import os
-import serial
 import sys
 import time
 
+import serial
+
 from ymodem.Protocol import ProtocolType
 from ymodem.Socket import ModemSocket
+
 
 class TaskProgressBar:
     def __init__(self):
@@ -47,16 +48,19 @@ if __name__ == '__main__':
         serial_io.open()
     except Exception as e:
         raise Exception("Failed to open serial port!")
-    
-    def read(size, timeout = 3):
+
+
+    def read(size, timeout=3):
         serial_io.timeout = timeout
         return serial_io.read(size)
 
-    def write(data, timeout = 3):
+
+    def write(data, timeout=3):
         serial_io.write_timeout = timeout
         serial_io.write(data)
         serial_io.flush()
         return
+
 
     sender = ModemSocket(read, write, ProtocolType.YMODEM)
     # sender = ModemSocket(read, write, ProtocolType.YMODEM, ['g'])

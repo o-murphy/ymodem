@@ -5,6 +5,7 @@ from ordered_set import OrderedSet
 
 from ymodem.Version import Version
 
+
 class ProtocolType(IntEnum):
     XMODEM = 0,
     YMODEM = 1,
@@ -18,19 +19,20 @@ class ProtocolType(IntEnum):
             cls.YMODEM,
             cls.ZMODEM
         ]
-    
+
+
 class ProtocolSubType(IntEnum):
     YMODEM_BATCH_FILE_TRANSMISSION = 0,
     YMODEM_G_FILE_TRANSMISSION = 1
-    
-class ZMODEM:
 
-    ZPAD                = '*'
-    ZDLE                = 24        # 0o30
-    ZDLEE               = ZDLE ^ 64 # 0o100
-    ZBIN                = 'A'
-    ZHEX                = 'B'
-    ZBIN32              = 'C'
+
+class ZMODEM:
+    ZPAD = '*'
+    ZDLE = 24  # 0o30
+    ZDLEE = ZDLE ^ 64  # 0o100
+    ZBIN = 'A'
+    ZHEX = 'B'
+    ZBIN32 = 'C'
 
     #########################################
     #
@@ -38,26 +40,26 @@ class ZMODEM:
     #
     #########################################
 
-    ZRQINIT             = 0
-    ZRINIT              = 1
-    ZSINIT              = 2
-    ZACK                = 3
-    ZFILE               = 4
-    ZSKIP               = 5
-    ZNAK                = 6
-    ZABORT              = 7
-    ZFIN                = 8
-    ZRPOS               = 9
-    ZDATA               = 10
-    ZEOF                = 11
-    ZFERR               = 12
-    ZCRC                = 13
-    ZCHALLENGE          = 14
-    ZCOMPL              = 15
-    ZCAN                = 16
-    ZFREECNT            = 17
-    ZCOMMAND            = 18
-    ZSTDERR             = 19
+    ZRQINIT = 0
+    ZRINIT = 1
+    ZSINIT = 2
+    ZACK = 3
+    ZFILE = 4
+    ZSKIP = 5
+    ZNAK = 6
+    ZABORT = 7
+    ZFIN = 8
+    ZRPOS = 9
+    ZDATA = 10
+    ZEOF = 11
+    ZFERR = 12
+    ZCRC = 13
+    ZCHALLENGE = 14
+    ZCOMPL = 15
+    ZCAN = 16
+    ZFREECNT = 17
+    ZCOMMAND = 18
+    ZSTDERR = 19
 
     #########################################
     #
@@ -65,12 +67,12 @@ class ZMODEM:
     #
     #########################################
 
-    ZCRCE               = 'h'
-    ZCRCG               = 'i'
-    ZCRCQ               = 'j'
-    ZCRCW               = 'k'
-    ZRUB0               = 'l'
-    ZRUB1               = 'm'
+    ZCRCE = 'h'
+    ZCRCG = 'i'
+    ZCRCQ = 'j'
+    ZCRCW = 'k'
+    ZRUB0 = 'l'
+    ZRUB1 = 'm'
 
     #########################################
     #
@@ -79,14 +81,14 @@ class ZMODEM:
     #########################################
 
     # Byte positions within header array
-    ZF0                 = 3
-    ZF1                 = 2
-    ZF2                 = 1
-    ZF3                 = 0
-    ZP0                 = 0
-    ZP1                 = 1
-    ZP2                 = 2
-    ZP3                 = 3
+    ZF0 = 3
+    ZF1 = 2
+    ZF2 = 1
+    ZF3 = 0
+    ZP0 = 0
+    ZP1 = 1
+    ZP2 = 2
+    ZP3 = 3
 
     #########################################
     #
@@ -95,18 +97,18 @@ class ZMODEM:
     #########################################
 
     # Bit Masks for ZRINIT flags byte ZF0
-    CANFDX              = 0b00000001
-    CANOVIO             = 0b00000010
-    CANBRK              = 0b00000100
-    CANCRY              = 0b00001000
-    CANLZW              = 0b00010000
-    CANFC32             = 0b00100000
-    ESCCTL              = 0b01000000
-    ESC8                = 0b10000000
+    CANFDX = 0b00000001
+    CANOVIO = 0b00000010
+    CANBRK = 0b00000100
+    CANCRY = 0b00001000
+    CANLZW = 0b00010000
+    CANFC32 = 0b00100000
+    ESCCTL = 0b01000000
+    ESC8 = 0b10000000
 
     # Bit Masks for ZRINIT flags byte ZF1
-    ZF1_CANVHDR         = 0b00000001
-    ZF1_TIMESYNC        = 0b00000010
+    ZF1_CANVHDR = 0b00000001
+    ZF1_TIMESYNC = 0b00000010
 
     #########################################
     #
@@ -115,11 +117,11 @@ class ZMODEM:
     #########################################
 
     # Parameters for ZSINIT frame
-    ZATTNLEN            = 32
+    ZATTNLEN = 32
 
     # Bit Masks for ZSINIT flags byte ZF0
-    TESCCTL             = 64    # 0o100
-    TESC8               = 128   # 0o200
+    TESCCTL = 64  # 0o100
+    TESC8 = 128  # 0o200
 
     #########################################
     #
@@ -127,9 +129,9 @@ class ZMODEM:
     #
     #########################################
 
-    ZCBIN               = 1
-    ZCNL                = 2
-    ZCRESUM             = 3
+    ZCBIN = 1
+    ZCNL = 2
+    ZCRESUM = 3
 
     #########################################
     #
@@ -138,18 +140,18 @@ class ZMODEM:
     #########################################
 
     # Management include options, one of these ored in ZF1
-    ZF1_ZMSKNOLOC       = 0x80
+    ZF1_ZMSKNOLOC = 0x80
 
     # Management options, one of these ored in ZF1
-    ZF1_ZMMASK          = 0x1f
-    ZF1_ZMNEWL          = 1
-    ZF1_ZMCRC           = 2
-    ZF1_ZMAPND          = 3
-    ZF1_ZMCLOB          = 4
-    ZF1_ZMNEW           = 5
-    ZF1_ZMDIFF          = 6
-    ZF1_ZMPROT          = 7
-    ZF1_ZMCHNG          = 8
+    ZF1_ZMMASK = 0x1f
+    ZF1_ZMNEWL = 1
+    ZF1_ZMCRC = 2
+    ZF1_ZMAPND = 3
+    ZF1_ZMCLOB = 4
+    ZF1_ZMNEW = 5
+    ZF1_ZMDIFF = 6
+    ZF1_ZMPROT = 7
+    ZF1_ZMCHNG = 8
 
     #########################################
     #
@@ -158,12 +160,12 @@ class ZMODEM:
     #########################################
 
     # Transport options, one of these in ZF2
-    ZTLZW               = 1
-    ZTCRYPT             = 2
-    ZTRLE               = 3
+    ZTLZW = 1
+    ZTCRYPT = 2
+    ZTRLE = 3
 
     # Extended options for ZF3, bit encoded
-    ZXSPARS             = 64
+    ZXSPARS = 64
 
     #########################################
     #
@@ -171,30 +173,30 @@ class ZMODEM:
     #
     #########################################
 
-    ZCACK1              = 1
+    ZCACK1 = 1
+
 
 class XMODEM:
-
     # Bit Masks for XMODEM features
-    USE_CHECKSUM        = 0b00000001
-    USE_CRC             = 0b00000010
-    ALLOW_1K_PACKET     = 0b00010000
-    
-class YMODEM:
+    USE_CHECKSUM = 0b00000001
+    USE_CRC = 0b00000010
+    ALLOW_1K_PACKET = 0b00010000
 
+
+class YMODEM:
     #########################################
     #
     #                 SYMBOL
     #
     #########################################
 
-    SOH                 = b'\x01'
-    STX                 = b'\x02'
-    EOT                 = b'\x04'
-    ACK                 = b'\x06'
-    NAK                 = b'\x15'
-    CAN                 = b'\x18'
-    CRC                 = b'\x43'
+    SOH = b'\x01'
+    STX = b'\x02'
+    EOT = b'\x04'
+    ACK = b'\x06'
+    NAK = b'\x15'
+    CAN = b'\x18'
+    CRC = b'\x43'
 
     #########################################
     #
@@ -203,12 +205,12 @@ class YMODEM:
     #########################################
 
     # Bit Masks for YMODEM features
-    USE_LENGTH_FIELD    = 0b00000001
-    USE_DATE_FIELD      = 0b00000010
-    USE_MODE_FIELD      = 0b00000100
-    USE_SN_FIELD        = 0b00001000
-    ALLOW_1K_PACKET     = 0b00010000
-    ALLOW_YMODEM_G      = 0b00100000
+    USE_LENGTH_FIELD = 0b00000001
+    USE_DATE_FIELD = 0b00000010
+    USE_MODE_FIELD = 0b00000100
+    USE_SN_FIELD = 0b00001000
+    ALLOW_1K_PACKET = 0b00010000
+    ALLOW_YMODEM_G = 0b00100000
 
     @classmethod
     def features(cls) -> List[int]:
@@ -220,7 +222,7 @@ class YMODEM:
             cls.ALLOW_1K_PACKET,
             cls.ALLOW_YMODEM_G
         ]
-    
+
     @classmethod
     def full_features(cls) -> List[int]:
         PROTOCOL_TYPE = ProtocolType.YMODEM << 8
@@ -232,17 +234,19 @@ class YMODEM:
             PROTOCOL_TYPE + cls.ALLOW_1K_PACKET,
             PROTOCOL_TYPE + cls.ALLOW_YMODEM_G
         ]
-    
+
+
 class _ProtocolStyle:
     def __init__(self):
         self._feature_dict = {}
 
     def set_protocol_features(self, protocol_type: int, features: Any):
         self._feature_dict[protocol_type] = features
-    
+
     def get_protocol_features(self, protocol_type: int):
         return self._feature_dict[protocol_type]
-    
+
+
 class ProtocolStyle:
     def __init__(self, name: str):
         self._name = name
@@ -260,7 +264,7 @@ class ProtocolStyle:
     @property
     def name(self) -> str:
         return self._name
-    
+
     @name.setter
     def name(self, name: str):
         self._name = name
@@ -268,20 +272,20 @@ class ProtocolStyle:
     @property
     def enabled(self) -> bool:
         return self._enabled
-    
+
     @enabled.setter
     def enable(self, enabled: bool):
         self._enabled = enabled
 
     def is_available(self) -> bool:
         return self._enabled
-    
+
     def get_latest_version(self) -> Optional[Version]:
         if bool(self._registered_versions):
             return max(self._registered_versions)
         else:
             return None
-        
+
     def get_core(self, version: Version) -> Optional[_ProtocolStyle]:
         if str(version) in self._cores:
             return self._cores[str(version)]
@@ -315,7 +319,7 @@ class ProtocolStyle:
             if version:
                 self._target_version = version
             else:
-                raise IndexError("No registered style!") 
+                raise IndexError("No registered style!")
         elif version not in self._registered_versions:
             raise KeyError(f"Style {self.name} - {str(version)} has not registered yet!")
         elif version in self._deprecated_versions:
@@ -330,7 +334,6 @@ class ProtocolStyle:
             raise TypeError(f"Parameter {protocol_type} does not belong to protocol type")
         else:
             self._cores[str(self._target_version)].set_protocol_features(protocol_type, features)
-            
 
     def get_protocol_features(self, protocol_type: int) -> Any:
         if not self._target_version:
@@ -368,7 +371,8 @@ class ProtocolStyleManagement:
         p.register(["1.0.0"])
         p.select()
         p.update_protocol_features(ProtocolType.XMODEM, XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET)
-        p.update_protocol_features(ProtocolType.YMODEM, YMODEM.USE_LENGTH_FIELD | YMODEM.USE_DATE_FIELD | YMODEM.USE_MODE_FIELD | YMODEM.ALLOW_1K_PACKET)
+        p.update_protocol_features(ProtocolType.YMODEM,
+                                   YMODEM.USE_LENGTH_FIELD | YMODEM.USE_DATE_FIELD | YMODEM.USE_MODE_FIELD | YMODEM.ALLOW_1K_PACKET)
         self._registered_styles[p.id] = p
 
         p = ProtocolStyle("VMS rb/sb")
@@ -382,7 +386,8 @@ class ProtocolStyleManagement:
         p.register(["1.0.0"])
         p.select()
         p.update_protocol_features(ProtocolType.XMODEM, XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET)
-        p.update_protocol_features(ProtocolType.YMODEM, YMODEM.USE_LENGTH_FIELD | YMODEM.USE_DATE_FIELD | YMODEM.USE_SN_FIELD | YMODEM.ALLOW_1K_PACKET | YMODEM.ALLOW_YMODEM_G)
+        p.update_protocol_features(ProtocolType.YMODEM,
+                                   YMODEM.USE_LENGTH_FIELD | YMODEM.USE_DATE_FIELD | YMODEM.USE_SN_FIELD | YMODEM.ALLOW_1K_PACKET | YMODEM.ALLOW_YMODEM_G)
         self._registered_styles[p.id] = p
 
         p = ProtocolStyle("CP/M YAM")

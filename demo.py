@@ -1,3 +1,4 @@
+import argparse
 import logging
 import math
 import os
@@ -33,27 +34,29 @@ class TaskProgressBar:
         print(f"\r{task_index} - {task_name} {progress:.2f}% [{a}->{b}]{cost:.2f}s", end="")
 
 
-if __name__ == '__main__':
+def main(filepaths, port, baud=115200, parity='N', bytesize=8, stopbits=1, timeout=2, chunk_size=1024):
+
+    print(filepaths)
+
     logging.basicConfig(level=logging.INFO, format='%(message)s')
 
     serial_io = serial.Serial()
-    serial_io.port = "COM2"
-    serial_io.baudrate = "115200"
-    serial_io.parity = "N"
-    serial_io.bytesize = 8
-    serial_io.stopbits = 1
-    serial_io.timeout = 2
+    serial_io.port = port
+    serial_io.baudrate = baud
+    serial_io.parity = parity
+    serial_io.bytesize = bytesize
+    serial_io.stopbits = stopbits
+    serial_io.timeout = timeout
 
     try:
         serial_io.open()
     except Exception as e:
+        print(e)
         raise Exception("Failed to open serial port!")
-
 
     def read(size, timeout=3):
         serial_io.timeout = timeout
         return serial_io.read(size)
-
 
     def write(data, timeout=3):
         serial_io.write_timeout = timeout
@@ -61,13 +64,31 @@ if __name__ == '__main__':
         serial_io.flush()
         return
 
+    sender = ModemSocket(read, write, ProtocolType.YMODEM, packet_size=chunk_size)
+    # # sender = ModemSocket(read, write, ProtocolType.YMODEM, ['g'])
 
-    receiver = ModemSocket(read, write, ProtocolType.YMODEM)
-    # receiver = ModemSocket(read, write, ProtocolType.YMODEM, ['g'])
-
-    os.chdir(sys.path[0])
-    folder_path = os.path.abspath("remote")
     progress_bar = TaskProgressBar()
-    received = receiver.recv(folder_path, progress_bar.show)
+    sender.send(*filepaths, progress_bar.show)
 
     serial_io.close()
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        prog='ymodem sender',
+        description='sends files via ymodem'
+    )
+
+    parser.add_argument("filepaths", nargs="+")
+    parser.add_argument("-p", "--port", required=True, type=str, help="COM port")
+    parser.add_argument("-b", "--baud", type=int, default=115200, help="Baudrate, default 115200")
+    parser.add_argument("-pr", "--parity", type=str, default="N", help="Parity, default N")
+    parser.add_argument("-sz", "--bytesize", type=int, default=8, help="Bytesize, default 8")
+    parser.add_argument("-sb", "--stopbits", type=int, default=1, help="Stopbits, default 1")
+    parser.add_argument("-t", "--timeout", type=int, default=2, help="Timeout, default 2")
+    parser.add_argument("-cz", "--chunk-size", type=int, default=1024, help="Chunk size, default 1024")
+
+    args = parser.parse_args()
+    print(vars(args))
+
+    main(**vars(args))
