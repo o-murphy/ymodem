@@ -34,7 +34,8 @@ class TaskProgressBar:
         print(f"\r{task_index} - {task_name} {progress:.2f}% [{a}->{b}]{cost:.2f}s", end="")
 
 
-def main(filepaths, port, baud=115200, parity='N', bytesize=8, stopbits=1, timeout=2, chunk_size=1024):
+def main(filepaths, port, baud=115200, parity='N', bytesize=8, stopbits=1, com_timeout=2,
+         timeout=2, chunk_size=1024):
 
     print(filepaths)
 
@@ -46,7 +47,7 @@ def main(filepaths, port, baud=115200, parity='N', bytesize=8, stopbits=1, timeo
     serial_io.parity = parity
     serial_io.bytesize = bytesize
     serial_io.stopbits = stopbits
-    serial_io.timeout = timeout
+    serial_io.timeout = com_timeout
 
     try:
         serial_io.open()
@@ -54,11 +55,11 @@ def main(filepaths, port, baud=115200, parity='N', bytesize=8, stopbits=1, timeo
         print(e)
         raise Exception("Failed to open serial port!")
 
-    def read(size, timeout=3):
+    def read(size, timeout=timeout):
         serial_io.timeout = timeout
         return serial_io.read(size)
 
-    def write(data, timeout=3):
+    def write(data, timeout=timeout):
         serial_io.write_timeout = timeout
         serial_io.write(data)
         serial_io.flush()
@@ -85,7 +86,8 @@ if __name__ == '__main__':
     parser.add_argument("-pr", "--parity", type=str, default="N", help="Parity, default N")
     parser.add_argument("-sz", "--bytesize", type=int, default=8, help="Bytesize, default 8")
     parser.add_argument("-sb", "--stopbits", type=int, default=1, help="Stopbits, default 1")
-    parser.add_argument("-t", "--timeout", type=int, default=2, help="Timeout, default 2")
+    parser.add_argument("-ct", "--com-timeout", type=float, default=2, help="Serial timeout, default 2")
+    parser.add_argument("-t", "--timeout", type=float, default=2, help="Timeout, default 2")
     parser.add_argument("-cz", "--chunk-size", type=int, default=1024, help="Chunk size, default 1024")
 
     args = parser.parse_args()

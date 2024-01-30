@@ -440,7 +440,8 @@ class ModemSocket(Channel):
             if self.protocol_type == ProtocolType.YMODEM:
                 header = self._make_send_header(self._packet_size, 0)
                 data = bytearray().ljust(self._packet_size, b"\x00")
-                checksum = self._make_send_checksum(crc, data)
+                # checksum = self._make_send_checksum(crc, data)
+                checksum = self._make_send_checksum(1, data)
                 self.write(header + data + checksum)
                 self.logger.debug("[Sender]: Batch end packet ->")
 
