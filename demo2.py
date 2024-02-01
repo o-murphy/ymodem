@@ -78,28 +78,55 @@ class YReceiver:
         self._eot = False
         self._data = b''
 
+        # self._r = Control.CRC
+
+    @property
+    def data(self):
+        return self._data
+
     def receiver_emulator(self, packet: [bytes, bytearray]) -> [bytes, bytearray]:
 
-        ctrl = Control.parse(packet)
+        if packet == b'':
+            return Control.build(Control.CRC)
 
-        if ctrl == Control.EOT:
+        try:
+            ctrl = Control.parse(packet)
+            print(ctrl)
+        except Exception as exc:
+            print(exc)
+            return Control.build(Control.CAN)
+
+        if ctrl == Control.CAN:
+            ret = Control.CRC
+
+        elif ctrl == Control.EOT:
             if not self._eot:
                 self._eot += True
-                return Control.NAK
-            return Control.ACK
+                ret = Control.NAK
+            else:
+                ret = Control.ACK
 
         else:
-            parsed = Packet.parse(packet)
-
+            try:
+                parsed = Packet.parse(packet)
+            except Exception as exc:
+                print(exc)
+                return Control.build(Control.CRC)
+            print(parsed.seq_hi)
             if ctrl == Control.SOH and parsed.seq_hi == 0:
                 header = TransactionHeader.parse(parsed.data)
                 self._filename = header.filename
                 self._size = header.size
-                return Control.C
+                ret = Control.ACK
 
             elif ctrl == Control.SOH or ctrl == Control.STX:
                 self._data += parsed.data
-                return Control.ACK
+                ret = Control.ACK
+
+            else:
+                ret = Control.CAN
+
+        return Control.build(ret)
 
 class YSender:
 
@@ -132,11 +159,13 @@ class YSender:
         if not callable(request):
             raise Exception("request have to be callable")
 
+        def _request(packet):
+            return Control.parse(request(packet))
+
         # # Inspecting the function
         # signature = inspect.signature(request)
         # parameters = signature.parameters
         # return_type = get_type_hints(request).get('return', None)
-
 
         # Send header packet with filename and size
         filename = filepath.split('/')[-1].encode()
@@ -151,7 +180,7 @@ class YSender:
 
         header_packet = YSender.create_data_packet(header_data, 0, True)
         # resp = transaction.request(header_packet)
-        resp = request(header_packet)
+        resp = _request(header_packet)
 
         if resp != Control.C:
             raise Exception("Wrong header")
@@ -172,7 +201,7 @@ class YSender:
                 data_packet = YSender.create_data_packet(data, seq)
 
                 # resp = transaction.request(data_packet)
-                resp = request(data_packet)
+                resp = _request(data_packet)
 
                 if resp != Control.ACK:
                     bar.colour = 'red'
@@ -188,14 +217,14 @@ class YSender:
 
             # EOT
             # resp = transaction.request(Control.build(Control.EOT))
-            resp = request(Control.build(Control.EOT))
+            resp = _request(Control.build(Control.EOT))
             if resp != Control.NAK:
                 bar.colour = 'red'
                 raise Exception("Invalid EOT, not NAK received")
 
             # EOT
             # resp = transaction.request(Control.build(Control.EOT))
-            resp = request(Control.build(Control.EOT))
+            resp = _request(Control.build(Control.EOT))
             if resp != Control.ACK:
                 bar.colour = 'red'
                 raise Exception("Invalid EOT, not ACK received")
@@ -219,12 +248,61 @@ class YSender:
 #     )
 
 
+import serial
 
 
-filepath = 'demo/local/sample5.bin'
+def receive(ser):
 
-YSender.send_file(
-    filepath,
-    YReceiver().receiver_emulator
-)
+        r = YReceiver()
+
+        buf = b''
+
+
+
+        while True:
+            bytesToRead = ser.inWaiting()
+            data = ser.read(bytesToRead)
+
+            _EOT = True
+
+            if bytesToRead > 0:
+                _EOT = False
+                buf += data
+
+            else:
+
+                if len(buf) > 0:
+                    # print(buf)
+                    resp = r.receiver_emulator(buf)
+                    print(resp)
+                    ser.write(resp)
+
+
+                    if r._eot:
+                        _EOT = True
+                        with open('dump.bin', 'wb') as fp:
+                            fp.write(r.data)
+
+                    buf = b''
+
+                else:
+
+                    if _EOT:
+                        time.sleep(0.2)
+                        print('C')
+                        ser.write(b'C')
+
+
+def example():
+    filepath = 'demo/local/sample5.bin'
+
+    YSender.send_file(
+        filepath,
+        YReceiver().receiver_emulator
+    )
+
+
+ser = serial.Serial(port='COM4', baudrate=115200,
+                    bytesize=8, parity='N', stopbits=1, timeout=10, xonxoff=False, rtscts=False)
+receive(ser)
 
