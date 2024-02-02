@@ -3,6 +3,7 @@ import logging
 import math
 import os
 import time
+from typing import Optional, Any, Union
 
 import serial
 
@@ -37,27 +38,27 @@ def add_modem_args(parser):
     parser.add_argument("-p", "--port", required=True, type=str, help="COM port")
     parser.add_argument("-b", "--baudrate", type=int, default=115200, help="Baudrate, default 115200")
     parser.add_argument("-pr", "--parity", type=str, default="N", help="Parity, default N")
-    parser.add_argument("-sz", "--bytesize", type=int, default=8, help="Bytesize, default 8")
+    parser.add_argument("-bs", "--bytesize", type=int, default=8, help="Bytesize, default 8")
     parser.add_argument("-sb", "--stopbits", type=int, default=1, help="Stopbits, default 1")
     parser.add_argument("-t", "--timeout", type=float, default=2, help="Serial timeout, default 2")
-    parser.add_argument("-cz", "--chunk-size", type=int, default=1024, help="Chunk size, default 1024")
-    parser.add_argument("-d", "--debug", action='store_true')
+    parser.add_argument("-cs", "--chunk-size", type=int, default=1024, help="Chunk size, default 1024")
+    parser.add_argument("-d", "--debug", action='store_true', help="Enable debug")
 
 
 def get_cli_args():
     parser = argparse.ArgumentParser(
         prog='ymodem',
-        description='sends files via ymodem'
+        description='ymodem file sender/receiver',
     )
 
     subparsers = parser.add_subparsers(title='Commands', dest='cmd', required=True,
                                        help="'{send,receive} -h' for more info")
 
-    sender_argparser = subparsers.add_parser('send', help="command to send files")
-    sender_argparser.add_argument("sources", nargs="+")
+    sender_argparser = subparsers.add_parser('send', help="Command to send files")
+    sender_argparser.add_argument("sources", nargs="+", help="Filepaths to send ./filepath.bin ./filepath2.bin")
     add_modem_args(sender_argparser)
 
-    receiver_argparser = subparsers.add_parser('recv', help="command to receive file")
+    receiver_argparser = subparsers.add_parser('recv', help="Command to receive file")
     receiver_argparser.add_argument("dest")
     add_modem_args(receiver_argparser)
 
@@ -65,11 +66,11 @@ def get_cli_args():
 
 
 def main():
-    def read(size, timeout=3):
+    def read(size: int, timeout: Optional[float] = 3) -> Any:
         serial_io.timeout = timeout
         return serial_io.read(size)
 
-    def write(data, timeout=3):
+    def write(data: Union[bytes, bytearray], timeout: Optional[float] = 3) -> Any:
         serial_io.write_timeout = timeout
         serial_io.write(data)
         serial_io.flush()
@@ -77,38 +78,41 @@ def main():
 
     args = get_cli_args()
 
-    debug = args.pop('debug')
     cmd = args.pop('cmd')
     packet_size = args.pop('chunk_size', 1024)
     sources = args.pop('sources', [])
     dest = args.pop('dest', './')
 
-    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, format='%(message)s')
+    debug_level = logging.DEBUG if args.pop('debug') else logging.INFO
+
+    logging.basicConfig(level=debug_level, format='%(message)s')
+    logger = logging.getLogger('YMODEM')
+    logger.setLevel(debug_level)
 
     serial_io = serial.Serial(**args)
 
     if serial_io.is_open:
-        logging.info(f"Port {args['port']} opened")
+        logger.info(f"Port {args['port']} opened")
         try:
             progress_bar = TaskProgressBar()
             socket = ModemSocket(read, write, ProtocolType.YMODEM, packet_size=packet_size)
 
             if cmd == 'send':
                 paths = [os.path.abspath(source) for source in sources]
-                logging.info(f"Waiting for command from Receiver...")
+                logger.info(f"Waiting for command from Receiver...")
                 socket.send(paths, progress_bar.show)
             elif cmd == 'recv':
                 path = os.path.abspath(dest)
-                logging.info(f"Waiting for response from Sender...")
+                logger.info(f"Waiting for response from Sender...")
                 socket.recv(path, progress_bar.show)
             else:
                 raise Exception("Unknown command")
         except (Exception, KeyboardInterrupt) as exc:
-            logging.exception(exc)
+            logger.exception(exc)
 
         finally:
             serial_io.close()
-            logging.info(f"Port {args['port']} closed")
+            logger.info(f"Port {args['port']} closed")
 
 
 if __name__ == '__main__':
