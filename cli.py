@@ -1,8 +1,6 @@
 import argparse
 import logging
 import math
-import os
-import sys
 import time
 
 import serial
@@ -80,17 +78,23 @@ if __name__ == '__main__':
         description='sends files via ymodem'
     )
 
-    parser.add_argument("filepaths", nargs="+")
-    parser.add_argument("-p", "--port", required=True, type=str, help="COM port")
-    parser.add_argument("-b", "--baud", type=int, default=115200, help="Baudrate, default 115200")
-    parser.add_argument("-pr", "--parity", type=str, default="N", help="Parity, default N")
-    parser.add_argument("-sz", "--bytesize", type=int, default=8, help="Bytesize, default 8")
-    parser.add_argument("-sb", "--stopbits", type=int, default=1, help="Stopbits, default 1")
-    parser.add_argument("-ct", "--com-timeout", type=float, default=2, help="Serial timeout, default 2")
-    parser.add_argument("-t", "--timeout", type=float, default=2, help="Timeout, default 2")
-    parser.add_argument("-cz", "--chunk-size", type=int, default=1024, help="Chunk size, default 1024")
+    subparsers = parser.add_subparsers(title='Commands', dest='cmd', required=False,
+                                       help="'{send,receive} -h' for more info")
+
+
+    sender_parser = subparsers.add_parser('send', help="command to send file")
+
+    sender_parser.add_argument("filepaths", nargs="+")
+    sender_parser.add_argument("-p", "--port", required=True, type=str, help="COM port")
+    sender_parser.add_argument("-b", "--baud", type=int, default=115200, help="Baudrate, default 115200")
+    sender_parser.add_argument("-pr", "--parity", type=str, default="N", help="Parity, default N")
+    sender_parser.add_argument("-sz", "--bytesize", type=int, default=8, help="Bytesize, default 8")
+    sender_parser.add_argument("-sb", "--stopbits", type=int, default=1, help="Stopbits, default 1")
+    sender_parser.add_argument("-ct", "--com-timeout", type=float, default=2, help="Serial timeout, default 2")
+    sender_parser.add_argument("-t", "--timeout", type=float, default=2, help="Timeout, default 2")
+    sender_parser.add_argument("-cz", "--chunk-size", type=int, default=1024, help="Chunk size, default 1024")
 
     args = parser.parse_args()
     print(vars(args))
 
-    main(**vars(args))
+    # main(**vars(args))
