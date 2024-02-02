@@ -1,11 +1,10 @@
-from typing import get_type_hints
+import os
+import time
 
 from construct import *
-from ymodem.CRC import calc_crc16
-import os
 from tqdm import tqdm
-import time
-import inspect
+
+from ymodem.CRC import calc_crc16
 
 # # C
 # p0 = b'\x01\x00\xFF\x52\x69\x73\x63\x76\x5F\x46\x69\x72\x6D\x77\x61\x72\x65\x5F\x32\x33\x30\x39\x32\x31\x2E\x62\x69\x6E\x00\x34\x33\x30\x36\x38\x32\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x20\xF4'
@@ -40,13 +39,13 @@ Packet = Struct(
     seq_hi=Int8ul,
     seq_low=Checksum(Byte, lambda x: 0xff - x, lambda ctx: ctx.seq_hi),
     data=Bytes(lambda ctx: 128 if ctx.control == Control.SOH else 1024),
-    crc=Checksum(Bytes(2), lambda data: calc_crc16(data).to_bytes(2), lambda ctx: ctx.data),
+    crc=Checksum(Bytes(2), lambda data: calc_crc16(data).to_bytes(2, 'little'), lambda ctx: ctx.data),
 )
 
 TransactionHeader = Struct(
     filename=CString('utf8'),
     size_=CString('utf8'),
-    size=Computed(lambda ctx: int(ctx.size_))
+    # size=Computed(lambda ctx: int(ctx.size_))
 )
 
 
@@ -112,11 +111,11 @@ class YReceiver:
             except Exception as exc:
                 print(exc)
                 return Control.build(Control.CRC)
-            print(parsed.seq_hi)
+
             if ctrl == Control.SOH and parsed.seq_hi == 0:
                 header = TransactionHeader.parse(parsed.data)
                 self._filename = header.filename
-                self._size = header.size
+                self._size = header.size_
                 ret = Control.ACK
 
             elif ctrl == Control.SOH or ctrl == Control.STX:
@@ -127,6 +126,7 @@ class YReceiver:
                 ret = Control.CAN
 
         return Control.build(ret)
+
 
 class YSender:
 
@@ -182,7 +182,7 @@ class YSender:
         # resp = transaction.request(header_packet)
         resp = _request(header_packet)
 
-        if resp != Control.C:
+        if resp != Control.CRC:
             raise Exception("Wrong header")
 
         bar = tqdm(
@@ -197,13 +197,13 @@ class YSender:
         with open(filepath, 'rb') as fp:
             seq = 1
             while data := fp.read(1024):
-
                 data_packet = YSender.create_data_packet(data, seq)
 
                 # resp = transaction.request(data_packet)
                 resp = _request(data_packet)
+                print(seq, resp)
 
-                if resp != Control.ACK:
+                if not resp in [Control.ACK, Control.CRC]:
                     bar.colour = 'red'
                     raise Exception("Error, not ACK received")
 
@@ -252,49 +252,45 @@ import serial
 
 
 def receive(ser):
+    r = YReceiver()
 
-        r = YReceiver()
+    buf = b''
 
-        buf = b''
+    while True:
+        bytesToRead = ser.inWaiting()
+        data = ser.read(bytesToRead)
 
+        _EOT = True
 
+        if bytesToRead > 0:
+            _EOT = False
+            buf += data
 
-        while True:
-            bytesToRead = ser.inWaiting()
-            data = ser.read(bytesToRead)
+        else:
 
-            _EOT = True
+            if len(buf) > 0:
+                # print(buf)
+                resp = r.receiver_emulator(buf)
+                print(resp)
+                ser.write(resp)
 
-            if bytesToRead > 0:
-                _EOT = False
-                buf += data
+                if r._eot:
+                    _EOT = True
+                    with open('dump.bin', 'wb') as fp:
+                        fp.write(r.data)
+
+                buf = b''
 
             else:
 
-                if len(buf) > 0:
-                    # print(buf)
-                    resp = r.receiver_emulator(buf)
-                    print(resp)
-                    ser.write(resp)
-
-
-                    if r._eot:
-                        _EOT = True
-                        with open('dump.bin', 'wb') as fp:
-                            fp.write(r.data)
-
-                    buf = b''
-
-                else:
-
-                    if _EOT:
-                        time.sleep(0.2)
-                        print('C')
-                        ser.write(b'C')
+                if _EOT:
+                    time.sleep(0.2)
+                    print('C')
+                    ser.write(b'C')
 
 
 def example():
-    filepath = 'demo/local/sample5.bin'
+    filepath = 'demo/local/sample6.bin'
 
     YSender.send_file(
         filepath,
@@ -302,7 +298,32 @@ def example():
     )
 
 
-ser = serial.Serial(port='COM4', baudrate=115200,
-                    bytesize=8, parity='N', stopbits=1, timeout=10, xonxoff=False, rtscts=False)
-receive(ser)
+def serial_send(data, ser):
+    count = ser.write(data)
+    if count > 0:
+        response = ser.read()
+        return response
 
+
+
+ser = serial.Serial(port='COM5', baudrate=115200,
+                    bytesize=8, parity='N', stopbits=1, timeout=10, xonxoff=False, rtscts=False)
+try:
+
+    # receive(ser)
+
+
+
+
+
+
+    filepath = 'demo/local/sample6.bin'
+    YSender.send_file(
+        filepath=filepath,
+        request=lambda data: serial_send(data, ser)
+    )
+except Exception as ex:
+    print(ex)
+
+if ser.is_open():
+    ser.close()

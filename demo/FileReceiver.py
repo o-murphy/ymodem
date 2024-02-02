@@ -37,7 +37,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(message)s')
 
     serial_io = serial.Serial()
-    serial_io.port = "COM2"
+    serial_io.port = "COM4"
     serial_io.baudrate = "115200"
     serial_io.parity = "N"
     serial_io.bytesize = 8
@@ -71,3 +71,4 @@ if __name__ == '__main__':
     received = receiver.recv(folder_path, progress_bar.show)
 
     serial_io.close()
+

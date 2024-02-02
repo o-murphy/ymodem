@@ -413,17 +413,67 @@ class ModemSocket(Channel):
                 receiver-driven, with the sender only having the high-level 1-minute
                 timeout to abort.
                 '''
+
+                '''
+                Some receivers are waiting for EOT twice:
+                
+                [Sender]: <- ACK
+                [Sender]: Reached EOF
+                [Sender]: EOT ->
+                [Sender]: <- ACK
+                '''
+
                 retries = 0
                 while True:
                     if retries < 10:
-                        c = self._write_and_wait(EOT, [ACK])
+                        # c = self._write_and_wait(EOT, [ACK])
+                        c = self._write_and_wait(EOT, [NAK, ACK])
                         self.logger.debug("[Sender]: EOT ->")
 
                         if c:
-                            self.logger.debug("[Sender]: <- ACK")
+
+                            if c == NAK:
+                                self.logger.debug("[Sender]: <- NAK")
+
+                            elif c == ACK:
+                                self.logger.debug("[Sender]: <- ACK")
+                                break
+
+                            else:
+                                self.logger.warning("[Sender]: No ACK or NAK from Receiver, preparing to retransmit.")
+                                retries += 1
+
+                        else:
+                            self.logger.warning("[Sender]: No ACK or NAK from Receiver, preparing to retransmit.")
+                            retries += 1
+
+                    else:
+                        self.logger.error(
+                            "[Sender]: The number of retransmissions has reached the maximum limit, abort and exit!")
+                        self._abort()
+                        return False
+
+                '''
+                Some receivers are sending CRC after EOT:
+                
+                [Sender]: <- ACK
+                [Sender]: Reached EOF
+                [Sender]: EOT ->
+                [Sender]: <- ACK
+                '''
+
+                retries = 0
+                while True:
+                    if retries < 10:
+                        c = self._read_and_wait([CRC])
+
+                        if c:
+                            self.logger.debug(
+                                "[Sender]: <- CRC"
+                            )
                             break
                         else:
-                            self.logger.warning("[Sender]: No ACK from Receiver, preparing to retransmit.")
+                            self.logger.debug(c)
                             retries += 1
                     else:
                         self.logger.error(
@@ -896,6 +946,8 @@ class ModemSocket(Channel):
             if t > wait_time:
                 return None
             c = self.read(1)
+            # print('Got', c)
+
             if c in wait_chars:
                 return c
 
@@ -911,6 +963,7 @@ class ModemSocket(Channel):
             if t > wait_time:
                 return None
             c = self.read(1)
+            # print('Got', c)
             if c in wait_chars:
                 return c
 
