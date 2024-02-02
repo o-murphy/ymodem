@@ -1,6 +1,8 @@
 import argparse
 import logging
 import math
+import os
+import sys
 import time
 
 import serial
@@ -32,69 +34,83 @@ class TaskProgressBar:
         print(f"\r{task_index} - {task_name} {progress:.2f}% [{a}->{b}]{cost:.2f}s", end="")
 
 
-def main(filepaths, port, baud=115200, parity='N', bytesize=8, stopbits=1, com_timeout=2,
-         timeout=2, chunk_size=1024):
+def add_modem_args(parser):
+    parser.add_argument("-p", "--port", required=True, type=str, help="COM port")
+    parser.add_argument("-b", "--baudrate", type=int, default=115200, help="Baudrate, default 115200")
+    parser.add_argument("-pr", "--parity", type=str, default="N", help="Parity, default N")
+    parser.add_argument("-sz", "--bytesize", type=int, default=8, help="Bytesize, default 8")
+    parser.add_argument("-sb", "--stopbits", type=int, default=1, help="Stopbits, default 1")
+    parser.add_argument("-t", "--timeout", type=float, default=2, help="Serial timeout, default 2")
+    parser.add_argument("-cz", "--chunk-size", type=int, default=1024, help="Chunk size, default 1024")
+    parser.add_argument("-d", "--debug", action='store_true')
 
-    print(filepaths)
 
-    logging.basicConfig(level=logging.INFO, format='%(message)s')
+def get_cli_args():
+    parser = argparse.ArgumentParser(
+        prog='ymodem',
+        description='sends files via ymodem'
+    )
 
-    serial_io = serial.Serial()
-    serial_io.port = port
-    serial_io.baudrate = baud
-    serial_io.parity = parity
-    serial_io.bytesize = bytesize
-    serial_io.stopbits = stopbits
-    serial_io.timeout = com_timeout
+    subparsers = parser.add_subparsers(title='Commands', dest='cmd', required=True,
+                                       help="'{send,receive} -h' for more info")
 
-    try:
-        serial_io.open()
-    except Exception as e:
-        print(e)
-        raise Exception("Failed to open serial port!")
+    sender_argparser = subparsers.add_parser('send', help="command to send files")
+    sender_argparser.add_argument("sources", nargs="+")
+    add_modem_args(sender_argparser)
 
-    def read(size, timeout=timeout):
+    receiver_argparser = subparsers.add_parser('recv', help="command to receive file")
+    receiver_argparser.add_argument("dest")
+    add_modem_args(receiver_argparser)
+
+    return vars(parser.parse_args())
+
+
+def main():
+    def read(size, timeout=3):
         serial_io.timeout = timeout
         return serial_io.read(size)
 
-    def write(data, timeout=timeout):
+    def write(data, timeout=3):
         serial_io.write_timeout = timeout
         serial_io.write(data)
         serial_io.flush()
         return
 
-    sender = ModemSocket(read, write, ProtocolType.YMODEM, packet_size=chunk_size)
-    # # sender = ModemSocket(read, write, ProtocolType.YMODEM, ['g'])
+    args = get_cli_args()
 
-    progress_bar = TaskProgressBar()
-    sender.send(*filepaths, progress_bar.show)
+    debug = args.pop('debug')
+    cmd = args.pop('cmd')
+    packet_size = args.pop('chunk_size', 1024)
+    sources = args.pop('sources', [])
+    dest = args.pop('dest', './')
 
-    serial_io.close()
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO, format='%(message)s')
+
+    serial_io = serial.Serial(**args)
+
+    if serial_io.is_open:
+        logging.info(f"Port {args['port']} opened")
+        try:
+            progress_bar = TaskProgressBar()
+            socket = ModemSocket(read, write, ProtocolType.YMODEM, packet_size=packet_size)
+
+            if cmd == 'send':
+                paths = [os.path.abspath(source) for source in sources]
+                logging.info(f"Waiting for command from Receiver...")
+                socket.send(paths, progress_bar.show)
+            elif cmd == 'recv':
+                path = os.path.abspath(dest)
+                logging.info(f"Waiting for response from Sender...")
+                socket.recv(path, progress_bar.show)
+            else:
+                raise Exception("Unknown command")
+        except (Exception, KeyboardInterrupt) as exc:
+            logging.exception(exc)
+
+        finally:
+            serial_io.close()
+            logging.info(f"Port {args['port']} closed")
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        prog='ymodem sender',
-        description='sends files via ymodem'
-    )
-
-    subparsers = parser.add_subparsers(title='Commands', dest='cmd', required=False,
-                                       help="'{send,receive} -h' for more info")
-
-
-    sender_parser = subparsers.add_parser('send', help="command to send file")
-
-    sender_parser.add_argument("filepaths", nargs="+")
-    sender_parser.add_argument("-p", "--port", required=True, type=str, help="COM port")
-    sender_parser.add_argument("-b", "--baud", type=int, default=115200, help="Baudrate, default 115200")
-    sender_parser.add_argument("-pr", "--parity", type=str, default="N", help="Parity, default N")
-    sender_parser.add_argument("-sz", "--bytesize", type=int, default=8, help="Bytesize, default 8")
-    sender_parser.add_argument("-sb", "--stopbits", type=int, default=1, help="Stopbits, default 1")
-    sender_parser.add_argument("-ct", "--com-timeout", type=float, default=2, help="Serial timeout, default 2")
-    sender_parser.add_argument("-t", "--timeout", type=float, default=2, help="Timeout, default 2")
-    sender_parser.add_argument("-cz", "--chunk-size", type=int, default=1024, help="Chunk size, default 1024")
-
-    args = parser.parse_args()
-    print(vars(args))
-
-    # main(**vars(args))
+    main()
