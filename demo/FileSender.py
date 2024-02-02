@@ -67,7 +67,7 @@ if __name__ == '__main__':
     # sender = ModemSocket(read, write, ProtocolType.YMODEM, ['g'])
 
     os.chdir(sys.path[0])
-    file_path1 = os.path.abspath(r"C:\Users\Sergey\Documents\TSA-Ingenic\A7-ingenic\fpga_update_data_20240125\Riscv_Firmware_240125.bin")
+    file_path1 = os.path.abspath(r"demo/local/sample6.bin")
     # file_path2 = os.path.abspath('local/sample2.stl')
     # file_path3 = os.path.abspath('local/sample3.stl')
     progress_bar = TaskProgressBar()
