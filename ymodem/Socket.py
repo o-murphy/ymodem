@@ -1,8 +1,8 @@
-from abc import ABC, abstractmethod
 import logging
 import math
 import os
 import time
+from abc import ABC, abstractmethod
 from typing import Any, Callable, List, Optional, Union
 
 from ymodem.CRC import calc_crc16, calc_checksum
@@ -13,10 +13,11 @@ ACK = b'\x06'
 CAN = b'\x18'
 CRC = b'\x43'
 EOT = b'\x04'
-G   = b'\x67'
+G = b'\x67'
 NAK = b'\x15'
 SOH = b'\x01'
 STX = b'\x02'
+
 
 class Channel(ABC):
 
@@ -28,13 +29,16 @@ class Channel(ABC):
     def write(self, *arg, **kwargs):
         pass
 
+
 _psm = ProtocolStyleManagement()
 
+
 class ModemSocket(Channel):
-    def __init__(self, 
-                 read: Callable[[int, Optional[float]], Any], 
-                 write: Callable[[Union[bytes, bytearray], Optional[float]], Any], 
-                 protocol_type: int = ProtocolType.YMODEM, 
+
+    def __init__(self,
+                 read: Callable[[int, Optional[float]], Any],
+                 write: Callable[[Union[bytes, bytearray], Optional[float]], Any],
+                 protocol_type: int = ProtocolType.YMODEM,
                  protocol_type_options: List[str] = [],
                  packet_size: int = 1024,
                  style_id: int = _psm.get_available_styles()[2]):
@@ -44,39 +48,40 @@ class ModemSocket(Channel):
         self._read = read
         self._write = write
         self.set_protocol(protocol_type, protocol_type_options, style_id, packet_size)
-        
+
     '''
     7.3.2 Receive_Program_Considerations
 
     Once into a receiving a block, the receiver goes into a one-second timeout
     for each character and the checksum.
     '''
+
     def read(self, size: int, timeout: float = 1) -> Any:
         try:
             return self._read(size, timeout)
         except Exception:
             self.logger.warning("[Modem]: Read timeout!")
             return None
-    
+
     def write(self, data: Union[bytes, bytearray], timeout: float = 1) -> Any:
         try:
             return self._write(data, timeout)
         except Exception:
             self.logger.warning("[Modem]: Write timeout!")
             return None
-    
-    def set_protocol(self, 
-                     protocol_type: int, 
-                     protocol_type_options: List[str], 
-                     style_id: int, 
+
+    def set_protocol(self,
+                     protocol_type: int,
+                     protocol_type_options: List[str],
+                     style_id: int,
                      packet_size: int):
         if protocol_type not in ProtocolType.all():
             raise ValueError(f"Invalid mode specified: {protocol_type}")
-        
+
         self.protocol_type = protocol_type
 
         if style_id not in _psm.get_available_styles():
-            raise ValueError(f"Invalid style specified: {style_id}")        
+            raise ValueError(f"Invalid style specified: {style_id}")
         style = _psm.get_available_style(style_id)
 
         self._protocol_features = style.get_protocol_features(self.protocol_type)
@@ -86,15 +91,15 @@ class ModemSocket(Channel):
         self._packet_size = packet_size
         if (self._protocol_features & XMODEM.ALLOW_1K_PACKET) == 0:
             self._packet_size = 128
-        
+
         if self.protocol_type == ProtocolType.YMODEM:
             if 'g' in protocol_type_options and (self._protocol_features & YMODEM.ALLOW_YMODEM_G) != 0:
                 self.protocol_subtype = ProtocolSubType.YMODEM_G_FILE_TRANSMISSION
             else:
                 self.protocol_subtype = ProtocolSubType.YMODEM_BATCH_FILE_TRANSMISSION
-    
-    def send(self, 
-             paths: List[str], 
+
+    def send(self,
+             paths: List[str],
              callback: Optional[Callable[[int, str, int, int], None]] = None
              ) -> bool:
         '''
@@ -108,8 +113,8 @@ class ModemSocket(Channel):
         # XYMODEM process
         if self.protocol_type == ProtocolType.XMODEM or self.protocol_type == ProtocolType.YMODEM:
 
-            tasks = []      # type: List[_ModemFile]
-            stream = None   # type: BufferedReader
+            tasks = []  # type: List[_ModemFile]
+            stream = None  # type: BufferedReader
 
             # XMODEM and XMODEM_1K only supports single file transfer
             if self.protocol_type == ProtocolType.XMODEM:
@@ -146,7 +151,8 @@ class ModemSocket(Channel):
                     if c:
                         if c == CAN:
                             self.logger.debug("[Sender]: <- CAN")
-                            self.logger.warning("[Sender]: Received a request from the Receiver to cancel the transmission, exit.")
+                            self.logger.warning(
+                                "[Sender]: Received a request from the Receiver to cancel the transmission, exit.")
                             if stream:
                                 stream.close()
                             return True
@@ -157,14 +163,14 @@ class ModemSocket(Channel):
                         if stream:
                             stream.close()
                         return False
-                    
+
                     if c == NAK:
                         self.logger.debug("[Sender]: <- NAK")
                         crc = 0
                     else:
                         self.logger.debug("[Sender]: <- CRC / G")
                         crc = 1
-                    
+
                     header = self._make_send_header(self._packet_size, 0)
                     self.logger.debug(f"[Sender]: {'SOH' if self._packet_size == 128 else 'STX'} ->")
 
@@ -183,7 +189,7 @@ class ModemSocket(Channel):
                     '''
                     # Python's handling is case compatible
                     data = task.name.encode("utf-8")
-                    
+
                     '''
                     Length 
 
@@ -259,7 +265,7 @@ class ModemSocket(Channel):
 
                     data = data.ljust(self._packet_size, b"\x00")
                     checksum = self._make_send_checksum(crc, data)
-                    
+
                     retries = 0
                     while True:
                         if self.protocol_subtype == ProtocolSubType.YMODEM_BATCH_FILE_TRANSMISSION:
@@ -284,7 +290,8 @@ class ModemSocket(Channel):
                                     self.logger.warning("[Sender]: No ACK from Receiver, preparing to retransmit.")
                                     retries += 1
                             else:
-                                self.logger.error("[Sender]: The number of retransmissions has reached the maximum limit, abort and exit!")
+                                self.logger.error(
+                                    "[Sender]: The number of retransmissions has reached the maximum limit, abort and exit!")
                                 self._abort()
                                 self.logger.debug("[Sender]: CAN ->")
                                 if stream:
@@ -301,13 +308,14 @@ class ModemSocket(Channel):
                 #                                 XYMODEM common processing
                 #
                 #############################################################################################
-                           
+
                 c = self._read_and_wait([NAK, CRC, G, CAN], 60)
 
                 if c:
                     if c == CAN:
                         self.logger.debug("[Sender]: <- CAN")
-                        self.logger.warning("[Sender]: Received a request from the Receiver to cancel the transmission, exit.")
+                        self.logger.warning(
+                            "[Sender]: Received a request from the Receiver to cancel the transmission, exit.")
                         if stream:
                             stream.close()
                         return True
@@ -318,7 +326,7 @@ class ModemSocket(Channel):
                     if stream:
                         stream.close()
                     return True
-                
+
                 if c == NAK:
                     self.logger.debug("[Sender]: <- NAK")
                     crc = 0
@@ -371,7 +379,8 @@ class ModemSocket(Channel):
                                     self.logger.warning("[Sender]: No ACK from Receiver, preparing to retransmit.")
                                     retries += 1
                             else:
-                                self.logger.error("[Sender]: The number of retransmissions has reached the maximum limit, abort and exit!")
+                                self.logger.error(
+                                    "[Sender]: The number of retransmissions has reached the maximum limit, abort and exit!")
                                 self._abort()
                                 self.logger.debug("[Sender]: CAN ->")
                                 if stream:
@@ -404,23 +413,74 @@ class ModemSocket(Channel):
                 receiver-driven, with the sender only having the high-level 1-minute
                 timeout to abort.
                 '''
+
+                '''
+                Some receivers are waiting for EOT twice:
+                
+                [Sender]: <- ACK
+                [Sender]: Reached EOF
+                [Sender]: EOT ->
+                [Sender]: <- ACK
+                '''
+
                 retries = 0
                 while True:
                     if retries < 10:
-                        c = self._write_and_wait(EOT, [ACK])
+                        # c = self._write_and_wait(EOT, [ACK])
+                        c = self._write_and_wait(EOT, [NAK, ACK])
                         self.logger.debug("[Sender]: EOT ->")
 
                         if c:
-                            self.logger.debug("[Sender]: <- ACK")
-                            break
+
+                            if c == NAK:
+                                self.logger.debug("[Sender]: <- NAK")
+
+                            elif c == ACK:
+                                self.logger.debug("[Sender]: <- ACK")
+                                break
+
+                            else:
+                                self.logger.warning("[Sender]: No ACK or NAK from Receiver, preparing to retransmit.")
+                                retries += 1
+
                         else:
-                            self.logger.warning("[Sender]: No ACK from Receiver, preparing to retransmit.")
+                            self.logger.warning("[Sender]: No ACK or NAK from Receiver, preparing to retransmit.")
                             retries += 1
+
                     else:
-                        self.logger.error("[Sender]: The number of retransmissions has reached the maximum limit, abort and exit!")
+                        self.logger.error(
+                            "[Sender]: The number of retransmissions has reached the maximum limit, abort and exit!")
                         self._abort()
                         return False
-                    
+
+                '''
+                Some receivers are sending CRC after EOT:
+                
+                [Sender]: <- ACK
+                [Sender]: Reached EOF
+                [Sender]: EOT ->
+                [Sender]: <- ACK
+                '''
+
+                retries = 0
+                while True:
+                    if retries < 10:
+                        c = self._read_and_wait([CRC])
+
+                        if c:
+                            self.logger.debug(
+                                "[Sender]: <- CRC"
+                            )
+                            break
+                        else:
+                            self.logger.debug(c)
+                            retries += 1
+                    else:
+                        self.logger.error(
+                            "[Sender]: The number of retransmissions has reached the maximum limit, abort and exit!")
+                        self._abort()
+                        return False
+
             '''
             5. YMODEM Batch File Transmission
 
@@ -430,14 +490,15 @@ class ModemSocket(Channel):
             if self.protocol_type == ProtocolType.YMODEM:
                 header = self._make_send_header(self._packet_size, 0)
                 data = bytearray().ljust(self._packet_size, b"\x00")
-                checksum = self._make_send_checksum(crc, data)
+                # checksum = self._make_send_checksum(crc, data)
+                checksum = self._make_send_checksum(1, data)
                 self.write(header + data + checksum)
                 self.logger.debug("[Sender]: Batch end packet ->")
 
             return True
 
-    def recv(self, 
-             path: str, 
+    def recv(self,
+             path: str,
              callback: Optional[Callable[[int, str, int, int], None]] = None
              ) -> bool:
 
@@ -450,7 +511,7 @@ class ModemSocket(Channel):
             while True:
 
                 task = _ModemFile()
-                
+
                 if self.protocol_type == ProtocolType.YMODEM:
                     '''
                     5. YMODEM Batch File Transmission
@@ -483,20 +544,22 @@ class ModemSocket(Channel):
                         if c:
                             if c == CAN:
                                 self.logger.debug("[Receiver]: <- CAN")
-                                self.logger.warning("[Receiver]: Received a request from the Sender to cancel the transmission, exit.")
+                                self.logger.warning(
+                                    "[Receiver]: Received a request from the Sender to cancel the transmission, exit.")
                                 return True
                             else:
                                 pass
                         else:
-                            self.logger.error("[Receiver]: Waiting for response from Sender has timed out, abort and exit!")
+                            self.logger.error(
+                                "[Receiver]: Waiting for response from Sender has timed out, abort and exit!")
                             self._abort()
                             self.logger.debug("[Receiver]: CAN ->")
                             return False
-                        
+
                         if c == SOH:
                             self.logger.debug("[Receiver]: <- SOH")
                             packet_size = 128
-                        else: 
+                        else:
                             self.logger.debug("[Receiver]: <- STX")
                             packet_size = 1024
 
@@ -515,13 +578,13 @@ class ModemSocket(Channel):
                             data = self.read(packet_size + 2)
 
                             if data and len(data) == (packet_size + 2):
-                                
+
                                 valid, data = self._verify_recv_checksum(1, data)
 
                                 if valid:
 
                                     file_name = bytes.decode(data.split(b"\x00")[0], "utf-8")
-                                    
+
                                     # batch end packet received
                                     if not file_name:
                                         self.logger.debug("[Receiver]: <- Batch end packet")
@@ -568,7 +631,7 @@ class ModemSocket(Channel):
                                 # broken packet
                                 else:
                                     self.logger.warning("[Receiver]: Checksum failed.")
-                            
+
                             # timeout received data
                             else:
                                 self.logger.warning("[Receiver]: Received data timed out.")
@@ -610,7 +673,8 @@ class ModemSocket(Channel):
                                 self.logger.debug("[Receiver]: NAK ->")
                                 retries += 1
                             else:
-                                self.logger.error("[Receiver]: The number of retransmissions has reached the maximum limit, abort and exit!")
+                                self.logger.error(
+                                    "[Receiver]: The number of retransmissions has reached the maximum limit, abort and exit!")
                                 self._abort()
                                 self.logger.debug("[Receiver]: CAN ->")
                                 return False
@@ -619,7 +683,8 @@ class ModemSocket(Channel):
                             If an error is detected in a YMODEM-g transfer, the receiver aborts the
                             transfer with the multiple CAN abort sequence.
                             '''
-                            self.logger.error("[Receiver]: An error occurred during the transfer process using YMODEM_G, abort and exit!")
+                            self.logger.error(
+                                "[Receiver]: An error occurred during the transfer process using YMODEM_G, abort and exit!")
                             self._abort()
                             self.logger.debug("[Receiver]: CAN ->")
                             return False
@@ -670,7 +735,8 @@ class ModemSocket(Channel):
                     if c:
                         if c == CAN:
                             self.logger.debug("[Receiver]: <- CAN")
-                            self.logger.warning("[Receiver]: Received a request from the Sender to cancel the transmission, exit.")
+                            self.logger.warning(
+                                "[Receiver]: Received a request from the Sender to cancel the transmission, exit.")
                             if stream:
                                 stream.close()
                             return True
@@ -678,8 +744,9 @@ class ModemSocket(Channel):
                             # YMODEM enter here
                             crc = 1
                             break
-                
-                if (self.protocol_type == ProtocolType.XMODEM or self.protocol_subtype == ProtocolSubType.YMODEM_BATCH_FILE_TRANSMISSION) and not c:
+
+                if (
+                        self.protocol_type == ProtocolType.XMODEM or self.protocol_subtype == ProtocolSubType.YMODEM_BATCH_FILE_TRANSMISSION) and not c:
                     self.logger.warning("[Receiver]: No response in crc mode, try checksum mode...")
                     for _ in range(10):
                         c = self._write_and_wait(NAK, [SOH, STX, CAN], 10)
@@ -687,7 +754,8 @@ class ModemSocket(Channel):
                         if c:
                             if c == CAN:
                                 self.logger.debug("[Receiver]: <- CAN")
-                                self.logger.warning("[Receiver]: Received a request from the Sender to cancel the transmission, exit.")
+                                self.logger.warning(
+                                    "[Receiver]: Received a request from the Sender to cancel the transmission, exit.")
                                 if stream:
                                     stream.close()
                                 return True
@@ -710,7 +778,7 @@ class ModemSocket(Channel):
                     if c == SOH:
                         self.logger.debug("[Receiver]: <- SOH")
                         packet_size = 128
-                    elif c == STX: 
+                    elif c == STX:
                         self.logger.debug("[Receiver]: <- STX")
                         packet_size = 1024
                     elif c == CAN:
@@ -779,7 +847,8 @@ class ModemSocket(Channel):
                                 try:
                                     stream.write(data)
                                 except Exception:
-                                    self.logger.error(f"[Receiver]: Failed to write data packet {sequence} to file, abort and exit!")
+                                    self.logger.error(
+                                        f"[Receiver]: Failed to write data packet {sequence} to file, abort and exit!")
                                     self._abort()
                                     self.logger.debug("[Receiver]: CAN ->")
                                     if stream:
@@ -794,7 +863,7 @@ class ModemSocket(Channel):
                             # broken packet
                             else:
                                 self.logger.warning("[Receiver]: Checksum failed.")
-                        
+
                         # timeout received data
                         else:
                             self.logger.warning("[Receiver]: Received data timed out.")
@@ -805,7 +874,8 @@ class ModemSocket(Channel):
                         self.logger.warning("[Receiver]: Wrong sequence, drop the whole packet.")
                         self.read(packet_size + 1 + crc)
 
-                    if (self.protocol_type == ProtocolType.XMODEM or self.protocol_subtype == ProtocolSubType.YMODEM_BATCH_FILE_TRANSMISSION) and not received:
+                    if (
+                            self.protocol_type == ProtocolType.XMODEM or self.protocol_subtype == ProtocolSubType.YMODEM_BATCH_FILE_TRANSMISSION) and not received:
                         if retries < 10:
                             # retransmisstion
                             self.logger.warning("[Receiver]: Send a request for retransmission.")
@@ -814,14 +884,16 @@ class ModemSocket(Channel):
                             self.logger.debug("[Receiver]: NAK ->")
                             retries += 1
                         else:
-                            self.logger.error("[Receiver]: The number of retransmissions has reached the maximum limit, abort and exit!")
+                            self.logger.error(
+                                "[Receiver]: The number of retransmissions has reached the maximum limit, abort and exit!")
                             self._abort()
                             self.logger.debug("[Receiver]: CAN ->")
                             if stream:
                                 stream.close()
                             return False
                     elif self.protocol_subtype == ProtocolSubType.YMODEM_G_FILE_TRANSMISSION and not received:
-                        self.logger.error("[Receiver]: An error occurred during the transfer process using YMODEM_G, abort and exit!")
+                        self.logger.error(
+                            "[Receiver]: An error occurred during the transfer process using YMODEM_G, abort and exit!")
                         self._abort()
                         self.logger.debug("[Receiver]: CAN ->")
                         return False
@@ -833,7 +905,6 @@ class ModemSocket(Channel):
                             retries = 0
                         else:
                             c = self._read_and_wait([SOH, STX, CAN, EOT])
-                        
 
     def _abort(self) -> None:
         '''
@@ -865,21 +936,23 @@ class ModemSocket(Channel):
             if t > duration:
                 break
 
-    def _read_and_wait(self, 
-                        wait_chars: List[str],
-                        wait_time: int = 1
-                        ) -> Optional[str]:
+    def _read_and_wait(self,
+                       wait_chars: List[str],
+                       wait_time: int = 1
+                       ) -> Optional[str]:
         start_time = time.perf_counter()
         while True:
             t = time.perf_counter() - start_time
             if t > wait_time:
                 return None
             c = self.read(1)
+            # print('Got', c)
+
             if c in wait_chars:
                 return c
-    
-    def _write_and_wait(self, 
-                        write_char: str, 
+
+    def _write_and_wait(self,
+                        write_char: str,
                         wait_chars: List[str],
                         wait_time: int = 1
                         ) -> Optional[str]:
@@ -890,9 +963,10 @@ class ModemSocket(Channel):
             if t > wait_time:
                 return None
             c = self.read(1)
+            # print('Got', c)
             if c in wait_chars:
                 return c
-            
+
     def _make_send_header(self, packet_size, sequence):
         assert packet_size in (128, 1024), packet_size
         _bytes = []
@@ -922,7 +996,8 @@ class ModemSocket(Channel):
             local_sum = calc_crc16(data)
             valid = bool(remote_sum == local_sum)
             if not valid:
-                self.logger.debug("[Receiver]: CRC verification failed. Sender: %04x, Receiver: %04x.", remote_sum, local_sum)
+                self.logger.debug("[Receiver]: CRC verification failed. Sender: %04x, Receiver: %04x.", remote_sum,
+                                  local_sum)
         else:
             _checksum = bytearray([data[-1]])
             remote_sum = _checksum[0]
@@ -931,9 +1006,10 @@ class ModemSocket(Channel):
             local_sum = calc_checksum(data)
             valid = remote_sum == local_sum
             if not valid:
-                self.logger.debug("[Receiver]: CRC verification failed. Sender: %02x, Receiver: %02x.", remote_sum, local_sum)
+                self.logger.debug("[Receiver]: CRC verification failed. Sender: %02x, Receiver: %02x.", remote_sum,
+                                  local_sum)
         return valid, data
-    
+
 
 class _ModemFile:
     def __init__(self, path: Optional[str] = None):
@@ -952,7 +1028,7 @@ class _ModemFile:
     @property
     def name(self) -> str:
         return self._name
-    
+
     @name.setter
     def name(self, v: str):
         self._name = v
@@ -960,7 +1036,7 @@ class _ModemFile:
     @property
     def total(self) -> int:
         return self._total_length
-    
+
     @total.setter
     def total(self, v: int):
         self._total_length = v
@@ -968,7 +1044,7 @@ class _ModemFile:
     @property
     def received(self) -> int:
         return self._received_length
-    
+
     @received.setter
     def received(self, v: int):
         self._received_length = v
@@ -976,7 +1052,7 @@ class _ModemFile:
     @property
     def mtime(self) -> int:
         return self._mtime
-    
+
     @mtime.setter
     def mtime(self, v: int):
         self._mtime = v
@@ -984,7 +1060,7 @@ class _ModemFile:
     @property
     def mode(self) -> int:
         return self._mode
-    
+
     @mode.setter
     def mode(self, v: int):
         self._mode = v
@@ -992,8 +1068,7 @@ class _ModemFile:
     @property
     def sn(self) -> int:
         return self._sn
-    
+
     @sn.setter
     def sn(self, v: int):
         self._sn = v
-

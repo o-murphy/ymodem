@@ -34,19 +34,22 @@ crc16_table = [
     0x7c26, 0x6c07, 0x5c64, 0x4c45, 0x3ca2, 0x2c83, 0x1ce0, 0x0cc1,
     0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
     0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0,
-]   
+]
 
-def calc_crc16(data, crc = 0):
+
+def calc_crc16(data, crc=0):
     for char in bytearray(data):
         crctbl_idx = ((crc >> 8) ^ char) & 0xff
         crc = ((crc << 8) ^ crc16_table[crctbl_idx]) & 0xffff
     return crc & 0xffff
 
-def calc_checksum(data, checksum = 0):
+
+def calc_checksum(data, checksum=0):
     if sys.version_info >= (3, 0, 0):
         return (sum(data) + checksum) % 256
     else:
         return (sum(map(ord, data)) + checksum) % 256
+
 
 # CRC-32-IEEE 802.3
 crc32_table = [
@@ -84,7 +87,8 @@ crc32_table = [
     0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 ]
 
-def calc_crc32(data, crc = 0):
+
+def calc_crc32(data, crc=0):
     for char in bytearray(data):
         crctbl_idx = ((crc >> 8) ^ char) & 0xff
         crc = ((crc << 8) ^ crc32_table[crctbl_idx]) & 0xffffffff

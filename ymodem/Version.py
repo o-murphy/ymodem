@@ -1,6 +1,7 @@
 import re
 from typing import cast
 
+
 class Version:
     def __init__(self, version):
         super().__init__()
@@ -36,7 +37,8 @@ class Version:
         elif isinstance(version, int):
             version_list = [version]
         elif isinstance(version, Version):
-            version_list = [version.get_major(), version.get_minor(), version.get_revision(), version.get_postfix_type(), version.get_postfix_version()]
+            version_list = [version.get_major(), version.get_minor(), version.get_revision(),
+                            version.get_postfix_type(), version.get_postfix_version()]
         else:
             # TODO LOG
             version_list = []
@@ -52,25 +54,24 @@ class Version:
         except ValueError:
             pass
 
-    
     def get_major(self):
         return self._major
-    
+
     def get_minor(self):
         return self._minor
-    
+
     def get_revision(self):
         return self._revision
-    
+
     def get_postfix_type(self):
         return self._postfix_type
 
     def get_postfix_version(self):
         return self._postfix_version
-    
+
     def has_postfix(self):
         return self._postfix_type != ''
-    
+
     def __gt__(self, other):
         if isinstance(other, Version):
             return other.__lt__(self)
@@ -78,7 +79,7 @@ class Version:
             return Version(other).__lt__(self)
         else:
             return False
-        
+
     def __lt__(self, other):
         if isinstance(other, Version):
             if self._major < other.get_major():
@@ -86,15 +87,15 @@ class Version:
             if self._minor < other.get_minor():
                 return True
             if self._revision < other.get_revision() \
-                and self._major == other.get_major() \
-                and self._minor == other.get_minor():
+                    and self._major == other.get_major() \
+                    and self._minor == other.get_minor():
                 return True
             if self.has_postfix() and other.has_postfix() \
-                and self._postfix_version < other.get_postfix_version() \
-                and self._postfix_type == other.get_postfix_type() \
-                and self._revision == other.get_revision() \
-                and self._minor == other.get_minor() \
-                and self._major == other.get_major():
+                    and self._postfix_version < other.get_postfix_version() \
+                    and self._postfix_type == other.get_postfix_type() \
+                    and self._revision == other.get_revision() \
+                    and self._minor == other.get_minor() \
+                    and self._major == other.get_major():
                 return True
             if self.has_postfix() and not other.has_postfix():
                 return Version('{}.{}.{}').format(self.get_major(), self.get_minor(), self.get_revision()) == other
@@ -103,18 +104,17 @@ class Version:
         else:
             return False
 
-
     def __eq__(self, other):
         if isinstance(other, Version):
             return self._major == other.get_major() \
-                and self._minor == other.get_minor() \
-                and self._revision == other.get_revision() \
-                and self._postfix_type == other.get_postfix_type() \
-                and self._postfix_version == other.get_postfix_version()
+                   and self._minor == other.get_minor() \
+                   and self._revision == other.get_revision() \
+                   and self._postfix_type == other.get_postfix_type() \
+                   and self._postfix_version == other.get_postfix_version()
 
         if isinstance(other, str):
             return self == Version(other)
-        
+
         return False
 
     def __ge__(self, other):
@@ -125,7 +125,8 @@ class Version:
 
     def __str__(self):
         if self._postfix_type:
-            return '%s.%s.%s-%s.%s' % (self._major, self._minor, self._revision, self._postfix_type, self._postfix_version)
+            return '%s.%s.%s-%s.%s' % (
+            self._major, self._minor, self._revision, self._postfix_type, self._postfix_version)
         return '%s.%s.%s' % (self._major, self._minor, self._revision)
 
     def __hash__(self):

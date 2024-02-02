@@ -1,40 +1,18 @@
 import logging
-import math
 import os
-import serial
 import sys
-import time
+
+import serial
 
 from ymodem.Protocol import ProtocolType
 from ymodem.Socket import ModemSocket
-
-class TaskProgressBar:
-    def __init__(self):
-        self.bar_width = 50
-        self.last_task_name = ""
-        self.current_task_start_time = -1
-
-    def show(self, task_index, task_name, total, success):
-        if task_name != self.last_task_name:
-            self.current_task_start_time = time.perf_counter()
-            if self.last_task_name != "":
-                print('\n', end="")
-            self.last_task_name = task_name
-
-        success_width = math.ceil(success * self.bar_width / total)
-
-        a = "#" * success_width
-        b = "." * (self.bar_width - success_width)
-        progress = (success_width / self.bar_width) * 100
-        cost = time.perf_counter() - self.current_task_start_time
-
-        print(f"\r{task_index} - {task_name} {progress:.2f}% [{a}->{b}]{cost:.2f}s", end="")
+from ymodem.__main__ import TaskProgressBar
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(message)s')
-    
+
     serial_io = serial.Serial()
-    serial_io.port = "COM2"
+    serial_io.port = "COM4"
     serial_io.baudrate = "115200"
     serial_io.parity = "N"
     serial_io.bytesize = 8
@@ -46,16 +24,19 @@ if __name__ == '__main__':
     except Exception as e:
         raise Exception("Failed to open serial port!")
 
-    def read(size, timeout = 3):
+
+    def read(size, timeout=3):
         serial_io.timeout = timeout
         return serial_io.read(size)
 
-    def write(data, timeout = 3):
+
+    def write(data, timeout=3):
         serial_io.write_timeout = timeout
         serial_io.write(data)
         serial_io.flush()
         return
-    
+
+
     receiver = ModemSocket(read, write, ProtocolType.YMODEM)
     # receiver = ModemSocket(read, write, ProtocolType.YMODEM, ['g'])
 
@@ -65,3 +46,4 @@ if __name__ == '__main__':
     received = receiver.recv(folder_path, progress_bar.show)
 
     serial_io.close()
+
