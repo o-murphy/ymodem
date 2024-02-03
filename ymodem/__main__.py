@@ -42,6 +42,8 @@ def add_modem_args(parser):
     parser.add_argument("-sb", "--stopbits", type=int, default=1, help="Stopbits, default 1")
     parser.add_argument("-t", "--timeout", type=float, default=2, help="Serial timeout, default 2")
     parser.add_argument("-cs", "--chunk-size", type=int, default=1024, help="Chunk size, default 1024")
+    parser.add_argument("-x", "--xmodem", action='store_true', help="Force XMODEM protocol")
+    parser.add_argument("-g", "--ymodem-g", action='store_true', help="Force YMODEM-G (allowed only for YMODEM)")
     parser.add_argument("-d", "--debug", action='store_true', help="Enable debug")
 
 
@@ -79,9 +81,14 @@ def main():
     args = get_cli_args()
 
     cmd = args.pop('cmd')
-    packet_size = args.pop('chunk_size', 1024)
     sources = args.pop('sources', [])
     dest = args.pop('dest', './')
+
+    socket_args = {
+        'packet_size': args.pop('chunk_size', 1024),
+        'protocol': ProtocolType.XMODEM if args.pop('xmodem') else ProtocolType.YMODEM,
+        'protocol_type_options': ['g'] if args.pop('ymodem_g') else []
+    }
 
     debug_level = logging.DEBUG if args.pop('debug') else logging.INFO
 
@@ -95,7 +102,7 @@ def main():
         logger.info(f"Port {args['port']} opened")
         try:
             progress_bar = TaskProgressBar()
-            socket = ModemSocket(read, write, ProtocolType.YMODEM, packet_size=packet_size)
+            socket = ModemSocket(read, write, **socket_args)
 
             if cmd == 'send':
                 paths = [os.path.abspath(source) for source in sources]

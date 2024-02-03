@@ -14,7 +14,7 @@ README: [ENGLISH](https://github.com/alexwoo1900/ymodem/blob/master/README.md) |
 - [**Installation**](#installation)
 - [**Usage**](#usage)
   - [CLI TOOL](#cli-tool) 
-  - [Sending a batch of files](#sending-a-batch-of-files)
+    - [Sending a batch of files](#sending-a-batch-of-files)
     - [Receive a file](#receive-a-file)
   - [Demo](#demo)
   - [Interact with SecureCRT](#interact-with-securecrt)
@@ -159,6 +159,10 @@ logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 ```
 
 ## Changelog
+
+### v1.5.1b1 (2024/02/03)
+
+- Added additional options to cli tool
 
 ### v1.5.1b0 (2024/02/03)
 
