@@ -86,7 +86,7 @@ def main():
 
     socket_args = {
         'packet_size': args.pop('chunk_size', 1024),
-        'protocol': ProtocolType.XMODEM if args.pop('xmodem') else ProtocolType.YMODEM,
+        'protocol_type': ProtocolType.XMODEM if args.pop('xmodem') else ProtocolType.YMODEM,
         'protocol_type_options': ['g'] if args.pop('ymodem_g') else []
     }
 
