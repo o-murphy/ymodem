@@ -9,7 +9,7 @@ import serial
 
 from ymodem.Protocol import ProtocolType
 from ymodem.Socket import ModemSocket
-from ymodem.REPL import SerialTerminal
+from ymodem import REPL
 import asyncio
 
 
@@ -102,12 +102,16 @@ def main():
     logger.setLevel(debug_level)
 
     if cmd == "repl":
-        terminal = SerialTerminal(
+        REPL.main(
             port=args['port'],
             baudrate=args['baudrate']
         )
-        asyncio.run(terminal.run())
-        return
+        # terminal = SerialTerminal(
+        #     port=args['port'],
+        #     baudrate=args['baudrate']
+        # )
+        # asyncio.run(terminal.run())
+        # return
 
     serial_io = serial.Serial(**args)
 
