@@ -29,7 +29,8 @@ classifiers = [
 ]
 dependencies = [
     "ordered-set>=4.1.0",
-    "pyserial"
+    "pyserial",
+    "pyserial_asyncio"
 ]
 
 [project.urls]

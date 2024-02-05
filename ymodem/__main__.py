@@ -9,6 +9,8 @@ import serial
 
 from ymodem.Protocol import ProtocolType
 from ymodem.Socket import ModemSocket
+from ymodem.REPL import SerialTerminal
+import asyncio
 
 
 class TaskProgressBar:
@@ -53,8 +55,8 @@ def get_cli_args():
         description='ymodem file sender/receiver',
     )
 
-    subparsers = parser.add_subparsers(title='Commands', dest='cmd', required=True,
-                                       help="'{send,receive} -h' for more info")
+    subparsers = parser.add_subparsers(title='Commands', dest='cmd', required=False,
+                                       help="'{send,receive,repl} -h' for more info")
 
     sender_argparser = subparsers.add_parser('send', help="Command to send files")
     sender_argparser.add_argument("sources", nargs="+", help="Filepaths to send ./filepath.bin ./filepath2.bin")
@@ -64,10 +66,14 @@ def get_cli_args():
     receiver_argparser.add_argument("dest")
     add_modem_args(receiver_argparser)
 
+    repl_argparser = subparsers.add_parser('repl', help="REPL mode")
+    add_modem_args(repl_argparser)
+
     return vars(parser.parse_args())
 
 
 def main():
+
     def read(size: int, timeout: Optional[float] = 3) -> Any:
         serial_io.timeout = timeout
         return serial_io.read(size)
@@ -79,7 +85,6 @@ def main():
         return
 
     args = get_cli_args()
-
     cmd = args.pop('cmd')
     sources = args.pop('sources', [])
     dest = args.pop('dest', './')
@@ -96,11 +101,20 @@ def main():
     logger = logging.getLogger('YMODEM')
     logger.setLevel(debug_level)
 
+    if cmd == "repl":
+        terminal = SerialTerminal(
+            port=args['port'],
+            baudrate=args['baudrate']
+        )
+        asyncio.run(terminal.run())
+        return
+
     serial_io = serial.Serial(**args)
 
     if serial_io.is_open:
         logger.info(f"Port {args['port']} opened")
         try:
+
             progress_bar = TaskProgressBar()
             socket = ModemSocket(read, write, **socket_args)
 
