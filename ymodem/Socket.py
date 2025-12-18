@@ -125,6 +125,10 @@ class ModemSocket(Channel):
                 if os.path.isfile(path):
                     tasks.append(_TransmissionTask(path))
 
+            if len(tasks) == 0:
+                self.logger.warning("[Sender]: No valid files found in paths. Cancelling transfer.")
+                return False
+
             for task_index, task in enumerate(tasks):
 
                 try:
