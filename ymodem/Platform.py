@@ -9,11 +9,11 @@ class Platform:
         Other = 4
 
     __platform_type = PlatformType.Other
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         __platform_type = PlatformType.Windows
-    elif sys.platform == 'linux':
+    elif sys.platform == "linux":
         __platform_type = PlatformType.Linux
-    elif sys.platform == 'darwin':
+    elif sys.platform == "darwin":
         __platform_type = PlatformType.OSX
 
     @classmethod

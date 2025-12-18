@@ -1,0 +1,26 @@
+default_install_hook_types: [pre-commit]
+default_language_version:
+  python: python3.10
+
+repos:
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.9.13
+    hooks:
+      - id: uv-lock
+
+  - repo: local
+    hooks:
+      - id: uv-ruff-check
+        name: ruff lint & fix
+        entry: uv
+        args: ["run", "ruff", "check", "--fix"]
+        language: system
+        types_or: [python, pyi, jupyter]
+
+      - id: uv-ruff-format
+        name: ruff format
+        entry: uv
+        args: ["run", "ruff", "format"]
+        language: system
+        types_or: [python, pyi, jupyter]
+
