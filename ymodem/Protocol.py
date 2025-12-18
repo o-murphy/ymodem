@@ -7,32 +7,28 @@ from ymodem.Version import Version
 
 
 class ProtocolType(IntEnum):
-    XMODEM = 0,
-    YMODEM = 1,
+    XMODEM = (0,)
+    YMODEM = (1,)
     # not support yet
     ZMODEM = 2
 
     @classmethod
     def all(cls) -> List[int]:
-        return [
-            cls.XMODEM,
-            cls.YMODEM,
-            cls.ZMODEM
-        ]
+        return [cls.XMODEM, cls.YMODEM, cls.ZMODEM]
 
 
 class ProtocolSubType(IntEnum):
-    YMODEM_BATCH_FILE_TRANSMISSION = 0,
+    YMODEM_BATCH_FILE_TRANSMISSION = (0,)
     YMODEM_G_FILE_TRANSMISSION = 1
 
 
 class ZMODEM:
-    ZPAD = '*'
+    ZPAD = "*"
     ZDLE = 24  # 0o30
     ZDLEE = ZDLE ^ 64  # 0o100
-    ZBIN = 'A'
-    ZHEX = 'B'
-    ZBIN32 = 'C'
+    ZBIN = "A"
+    ZHEX = "B"
+    ZBIN32 = "C"
 
     #########################################
     #
@@ -67,12 +63,12 @@ class ZMODEM:
     #
     #########################################
 
-    ZCRCE = 'h'
-    ZCRCG = 'i'
-    ZCRCQ = 'j'
-    ZCRCW = 'k'
-    ZRUB0 = 'l'
-    ZRUB1 = 'm'
+    ZCRCE = "h"
+    ZCRCG = "i"
+    ZCRCQ = "j"
+    ZCRCW = "k"
+    ZRUB0 = "l"
+    ZRUB1 = "m"
 
     #########################################
     #
@@ -143,7 +139,7 @@ class ZMODEM:
     ZF1_ZMSKNOLOC = 0x80
 
     # Management options, one of these ored in ZF1
-    ZF1_ZMMASK = 0x1f
+    ZF1_ZMMASK = 0x1F
     ZF1_ZMNEWL = 1
     ZF1_ZMCRC = 2
     ZF1_ZMAPND = 3
@@ -190,13 +186,13 @@ class YMODEM:
     #
     #########################################
 
-    SOH = b'\x01'
-    STX = b'\x02'
-    EOT = b'\x04'
-    ACK = b'\x06'
-    NAK = b'\x15'
-    CAN = b'\x18'
-    CRC = b'\x43'
+    SOH = b"\x01"
+    STX = b"\x02"
+    EOT = b"\x04"
+    ACK = b"\x06"
+    NAK = b"\x15"
+    CAN = b"\x18"
+    CRC = b"\x43"
 
     #########################################
     #
@@ -220,7 +216,7 @@ class YMODEM:
             cls.USE_MODE_FIELD,
             cls.USE_SN_FIELD,
             cls.ALLOW_1K_PACKET,
-            cls.ALLOW_YMODEM_G
+            cls.ALLOW_YMODEM_G,
         ]
 
     @classmethod
@@ -232,7 +228,7 @@ class YMODEM:
             PROTOCOL_TYPE + cls.USE_MODE_FIELD,
             PROTOCOL_TYPE + cls.USE_SN_FIELD,
             PROTOCOL_TYPE + cls.ALLOW_1K_PACKET,
-            PROTOCOL_TYPE + cls.ALLOW_YMODEM_G
+            PROTOCOL_TYPE + cls.ALLOW_YMODEM_G,
         ]
 
 
@@ -250,7 +246,9 @@ class _ProtocolStyle:
 class ProtocolStyle:
     def __init__(self, name: str):
         self._name = name
-        self._id = self._name.upper().replace(' ', '_').replace('/', '_').replace('-', '_')
+        self._id = (
+            self._name.upper().replace(" ", "_").replace("/", "_").replace("-", "_")
+        )
         self._registered_versions = OrderedSet()
         self._deprecated_versions = set()
         self._target_version = None
@@ -321,7 +319,9 @@ class ProtocolStyle:
             else:
                 raise IndexError("No registered style!")
         elif version not in self._registered_versions:
-            raise KeyError(f"Style {self.name} - {str(version)} has not registered yet!")
+            raise KeyError(
+                f"Style {self.name} - {str(version)} has not registered yet!"
+            )
         elif version in self._deprecated_versions:
             raise KeyError(f"Style {self.name} - {str(version)} has been deprecated!")
         else:
@@ -331,17 +331,25 @@ class ProtocolStyle:
         if not self._target_version:
             raise IndexError("Call select() before update!")
         elif protocol_type not in ProtocolType.all():
-            raise TypeError(f"Parameter {protocol_type} does not belong to protocol type")
+            raise TypeError(
+                f"Parameter {protocol_type} does not belong to protocol type"
+            )
         else:
-            self._cores[str(self._target_version)].set_protocol_features(protocol_type, features)
+            self._cores[str(self._target_version)].set_protocol_features(
+                protocol_type, features
+            )
 
     def get_protocol_features(self, protocol_type: int) -> Any:
         if not self._target_version:
             raise IndexError("Call select() before get!")
         elif protocol_type not in ProtocolType.all():
-            raise TypeError(f"Parameter {protocol_type} does not belong to protocol type")
+            raise TypeError(
+                f"Parameter {protocol_type} does not belong to protocol type"
+            )
         else:
-            return self._cores[str(self._target_version)].get_protocol_features(protocol_type)
+            return self._cores[str(self._target_version)].get_protocol_features(
+                protocol_type
+            )
 
 
 class ProtocolStyleManagement:
@@ -351,7 +359,7 @@ class ProtocolStyleManagement:
 
     # Temporarily hard coding, change to configuration mode after the program is complete
     def register_all(self):
-        '''
+        """
         YMODEM Header Information and Features
         _____________________________________________________________
         | Program   | Length | Date | Mode | S/N | 1k-Blk | YMODEM-g |
@@ -366,41 +374,69 @@ class ProtocolStyleManagement:
         |___________|________|______|______|_____|________|__________|
         |KMD/IMP    | ?      | no   | no   | no  | yes    | no       |
         |___________|________|______|______|_____|________|__________|
-        '''
+        """
         p = ProtocolStyle("Unix rz/sz")
         p.register(["1.0.0"])
         p.select()
-        p.update_protocol_features(ProtocolType.XMODEM, XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET)
-        p.update_protocol_features(ProtocolType.YMODEM,
-                                   YMODEM.USE_LENGTH_FIELD | YMODEM.USE_DATE_FIELD | YMODEM.USE_MODE_FIELD | YMODEM.ALLOW_1K_PACKET)
+        p.update_protocol_features(
+            ProtocolType.XMODEM,
+            XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET,
+        )
+        p.update_protocol_features(
+            ProtocolType.YMODEM,
+            YMODEM.USE_LENGTH_FIELD
+            | YMODEM.USE_DATE_FIELD
+            | YMODEM.USE_MODE_FIELD
+            | YMODEM.ALLOW_1K_PACKET,
+        )
         self._registered_styles[p.id] = p
 
         p = ProtocolStyle("VMS rb/sb")
         p.register(["1.0.0"])
         p.select()
-        p.update_protocol_features(ProtocolType.XMODEM, XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET)
-        p.update_protocol_features(ProtocolType.YMODEM, YMODEM.USE_LENGTH_FIELD | YMODEM.ALLOW_1K_PACKET)
+        p.update_protocol_features(
+            ProtocolType.XMODEM,
+            XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET,
+        )
+        p.update_protocol_features(
+            ProtocolType.YMODEM, YMODEM.USE_LENGTH_FIELD | YMODEM.ALLOW_1K_PACKET
+        )
         self._registered_styles[p.id] = p
 
         p = ProtocolStyle("Pro-YAM")
         p.register(["1.0.0"])
         p.select()
-        p.update_protocol_features(ProtocolType.XMODEM, XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET)
-        p.update_protocol_features(ProtocolType.YMODEM,
-                                   YMODEM.USE_LENGTH_FIELD | YMODEM.USE_DATE_FIELD | YMODEM.USE_SN_FIELD | YMODEM.ALLOW_1K_PACKET | YMODEM.ALLOW_YMODEM_G)
+        p.update_protocol_features(
+            ProtocolType.XMODEM,
+            XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET,
+        )
+        p.update_protocol_features(
+            ProtocolType.YMODEM,
+            YMODEM.USE_LENGTH_FIELD
+            | YMODEM.USE_DATE_FIELD
+            | YMODEM.USE_SN_FIELD
+            | YMODEM.ALLOW_1K_PACKET
+            | YMODEM.ALLOW_YMODEM_G,
+        )
         self._registered_styles[p.id] = p
 
         p = ProtocolStyle("CP/M YAM")
         p.register(["1.0.0"])
         p.select()
-        p.update_protocol_features(ProtocolType.XMODEM, XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET)
+        p.update_protocol_features(
+            ProtocolType.XMODEM,
+            XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET,
+        )
         p.update_protocol_features(ProtocolType.YMODEM, YMODEM.ALLOW_1K_PACKET)
         self._registered_styles[p.id] = p
 
         p = ProtocolStyle("KMD/IMP")
         p.register(["1.0.0"])
         p.select()
-        p.update_protocol_features(ProtocolType.XMODEM, XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET)
+        p.update_protocol_features(
+            ProtocolType.XMODEM,
+            XMODEM.USE_CHECKSUM | XMODEM.USE_CRC | XMODEM.ALLOW_1K_PACKET,
+        )
         p.update_protocol_features(ProtocolType.YMODEM, YMODEM.ALLOW_1K_PACKET)
         self._registered_styles[p.id] = p
 
