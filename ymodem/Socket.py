@@ -1045,7 +1045,7 @@ class ModemSocket(Channel):
                 break
 
     def _read_and_wait(
-        self, wait_chars: List[str], wait_time: int = 1
+        self, wait_chars: List[bytes], wait_time: int = 1
     ) -> Optional[str]:
         start_time = time.perf_counter()
         while True:
@@ -1057,7 +1057,7 @@ class ModemSocket(Channel):
                 return c
 
     def _write_and_wait(
-        self, write_char: str, wait_chars: List[str], wait_time: int = 1
+        self, write_char: str, wait_chars: List[bytes], wait_time: int = 1
     ) -> Optional[str]:
         start_time = time.perf_counter()
         self.write(write_char)
